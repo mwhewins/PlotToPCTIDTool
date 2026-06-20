@@ -26,24 +26,19 @@ library(zoo)
 library("jsonlite")
 library(DBI)
 library(RSQLite)
-library(datamart)
 
 
-library(rgdal)
 library(sp)
 library(maps)
-library("OData")
+library(sf)
 
 library(leaflet)
 library(RColorBrewer)
 
 library(sqldf)
-library(loggit)
 library(stringr)
 library(future)
 library(sanitizers)
-
-library(rdrop2)
 
 library(tidyverse)
 library(tibble)
@@ -152,8 +147,8 @@ shinyServer(function(input, output,session) {
     fi<-file.info(list.files(path=fp,pattern="bionetapp.info$", full.names=TRUE))
     
     # Liz changed below line so that app last updated = date of sqlite file
-    applasteupdated <-as.character(fidb$mtime,"%d/%m/%Y")
-    dblasteupdated <-as.character(fidb$mtime,"%d/%m/%Y")
+    applasteupdated <- format(fidb$mtime, "%d/%m/%Y")
+    dblasteupdated <- format(fidb$mtime, "%d/%m/%Y")
     
     list_data <- list(c(applasteupdated), c(dblasteupdated))
     
@@ -412,24 +407,14 @@ shinyServer(function(input, output,session) {
         env_data <- select(infile_df, sites, one_of(non_floristic), -X)
         
        
-        wa.map <- readOGR("spatial/EasternNSW_PrimaryStudyArea_Merged.shp", layer="EasternNSW_PrimaryStudyArea_Merged")
-        sodo <- wa.map[0]
-        proj4string(sodo)<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")
-        
         dat <- data.frame(Longitude =env_data$Longitude ,
                           Latitude =env_data$Latitude,
                           names = env_data$sites)                  
         
-        p<-dat
-        coordinates(p) <- ~ Longitude + Latitude
-        proj4string(p) <- proj4string(sodo)
-        
-        x<-p[sodo,]
-        #plot(sodo)
-        #plot(x, col="red" , add=TRUE, lwd=4)
-        common <- setdiff(dat$names, x@data$names)  
-        #pts<-SpatialPoints(cbind(dat$Longitude,dat$Latitude))
-        #plot(pts, col="blue", add=TRUE)
+        p <- st_as_sf(dat, coords = c("Longitude", "Latitude"), crs = 4326, remove = FALSE)
+        in_study_region <- lengths(st_within(p, EasternNSWStudyRegion)) > 0
+        common <- dat$names[!in_study_region]
+
         if (length(common)>0){
           numplotsOutsideStudy<-toString(common) 
         }else{
@@ -1950,9 +1935,6 @@ shinyServer(function(input, output,session) {
       UnMatchedCol <-colorFactor(colfuncUnmatched(3000), domain = unmatchedplots$pctid)
       
       
-      EasternNSWStudyRegion <- readOGR("spatial/EasternNSW_PrimaryStudyArea_Merged.shp", layer="EasternNSW_PrimaryStudyArea_Merged")
-      proj4string(EasternNSWStudyRegion)<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")
-      
       oehblueicon <- makeAwesomeIcon(icon = "plus-sign", markerColor = "blue",
                                      iconColor = "white", library = "glyphicon",
                                      squareMarker =  TRUE)
@@ -2133,10 +2115,6 @@ shinyServer(function(input, output,session) {
             MatchedCol <-colorFactor(colfuncMatched(5), domain = matchedplots$pctid)
 
 
-            EasternNSWStudyRegion <- readOGR("spatial/EasternNSW_PrimaryStudyArea_Merged.shp", layer="EasternNSW_PrimaryStudyArea_Merged")
-            proj4string(EasternNSWStudyRegion)<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")
-
-
             oehblueicon <- makeAwesomeIcon(icon = "plus-sign", markerColor = "blue",
                                            iconColor = "white", library = "glyphicon",
                                            squareMarker =  TRUE)
@@ -2300,10 +2278,6 @@ shinyServer(function(input, output,session) {
             MatchedCol <-colorFactor(colfuncMatched(5), domain = matchedplots$pctid)
 
 
-            EasternNSWStudyRegion <- readOGR("spatial/EasternNSW_PrimaryStudyArea_Merged.shp", layer="EasternNSW_PrimaryStudyArea_Merged")
-            proj4string(EasternNSWStudyRegion)<-CRS("+proj=longlat +ellps=WGS84 +datum=WGS84 +no_defs +towgs84=0,0,0")
-
-
             oehblueicon <- makeAwesomeIcon(icon = "plus-sign", markerColor = "blue",
                                            iconColor = "white", library = "glyphicon",
                                            squareMarker =  TRUE)
@@ -2392,22 +2366,4 @@ shinyServer(function(input, output,session) {
   })
   
 
-  
-
-  session$onSessionEnded(
-    
-    function() {
-      loggit("INFO", "session has ended",log_detail="session has ended", sessionid=isolate(session$token), echo = FALSE)
-      
-      drop_upload(file = logfile_path, path = "PlotToPCTAssignmentTool_ActivityLogFiles", dtoken = drop_token)
-      
-      }
-
-    )
-
-  
-  
 })
-
-
-

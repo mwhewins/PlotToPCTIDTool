@@ -9,12 +9,11 @@
 char_spp_list <- readRDS("data/char_species_list.rds")
 centroids <- readRDS("data/species_centroids.rds")
 env_thresh <- readRDS("data/env_thresholds.rds")
+EasternNSWStudyRegion <- sf::st_read("spatial/EasternNSW_PrimaryStudyArea_Merged.shp", quiet = TRUE)
+EasternNSWStudyRegion <- sf::st_transform(EasternNSWStudyRegion, 4326)
 
 # a master list of what not to include in floristic data
 non_floristic <- c("X","Latitude","Longitude","Elevation","RainfallAnn","TempAnn")
-
-# drop box token load
-drop_token <- readRDS("www/drop_token.rds")
 
 
 # utils -------------------------------------------------------------------
@@ -43,8 +42,8 @@ get_appInfo<- function(){
         fidb<-file.info(list.files(path=fp,pattern="pctdatadb.sqlite$", full.names=TRUE))
         fi<-file.info(list.files(path=fp,pattern="bionetapp.info$", full.names=TRUE))
         
-        applasteupdated <-as.character(fi$mtime,"%d/%m/%Y")
-        dblasteupdated <-as.character(fidb$mtime,"%d/%m/%Y")
+        applasteupdated <- format(fi$mtime, "%d/%m/%Y")
+        dblasteupdated <- format(fidb$mtime, "%d/%m/%Y")
         
         list_data <- list(c(applasteupdated), c(dblasteupdated))
         
@@ -618,6 +617,8 @@ loggitBIONET <- function(log_lvl, log_msg, log_detail = "", ..., echo = TRUE) {
   
 }
 
+loggit <- loggitBIONET
+
 
 #' Set Log File
 #'
@@ -652,6 +653,8 @@ setLogFileBIONET <- function(logfile = NULL, confirm = TRUE) {
   invisible()
   
 }
+
+set_logfile <- setLogFileBIONET
 
 #' Get Log File
 #'
@@ -693,6 +696,3 @@ setTimestampFormat <- function(ts_format = "%Y-%m-%d %H:%M:%S", confirm = TRUE) 
 getTimestampFormat <- function() {
   .config$ts_format
 }
-
-
-
