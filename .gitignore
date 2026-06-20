@@ -2,6 +2,10 @@
 .Rhistory
 .Rapp.history
 
+# Codex session files
+.codex
+.agents
+
 # Session Data files
 .RData
 
